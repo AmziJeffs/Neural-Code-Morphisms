@@ -7,116 +7,63 @@ import time
 PP = PositiveIntegers()
 
 
-# A class for codewords that will live in a code
-class CodeWord(SageObject):
-	# Constructor for CodeWord object. Parameter 'support' determines the 
-	# support of the codeword, and must be one of the following:
-	#  - A string of integers separated by spaces, or
-	#  - a list of integers, or
-	#  - a set of integers
-	def __init__(self, support=Set()):
-		S = Set()
-		if isinstance(support, list):
-			for i in support:
-				assert i in PP
-			S = Set(support)
-		elif set.is_Set(support):
-			for i in support.list():
-				assert i in PP
-			S = Set(support)
-		elif isinstance(support, str):
-			support = support.split()
-			support = [int(i) for i in support]
-			for i in support:
-				assert i in PP
-			S = Set(support)
-		self._support = S
 
-	def __repr__(self):
-		return self.to_string()
+
+
+# Constructor for CodeWord object. Parameter 'support' determines the 
+# support of the codeword, and must be one of the following:
+#  - A string of integers separated by spaces, or
+#  - a list of integers, or
+#  - a set of integers
+def CodeWord(support = Set()):
+	if isinstance(support, basestring):
+		S = []
+		for x in support.split(" "):
+			if x != "":
+				S = S + [int(float(x))]
+		support = Set(S)
+	return Set(support)
 
 	# Returns a string displaying the codeword
-	def to_string(self):
-		if len(self._support) == 0:
-			return "Empty"
-		r = ""
-		for i in sorted(self._support.list()):
-			r = r + str(i) + " "
-		return r[:-1]
+def to_string(c):
+	if len(c) == 0:
+		return "Empty"
+	r = ""
+	for i in sorted(list(c)):
+		r = r + str(i) + " "
+	return r[:-1]
 
 	# Returns a string displaying the codeword without whitespace
-	def to_string_compact(self):
-		if len(self._support) == 0:
-			return "Empty"
-		r = ""
-		for i in sorted(self._support.list()):
-			r = r + str(i)
-		return r
+def to_string_compact(self):
+	if len(c) == 0:
+		return "Empty"
+	r = ""
+	for i in sorted(list(c)):
+		r = r + str(i)
+	return r
 
-	# Adds a neuron to the support of codeword
-	def add(self, neuron):
-		assert neuron in PP
-		return CodeWord(self._support.union(Set([neuron])))
+# Less than or equal, used for lexicographical ordering of codewords
+def lecodewords(c, d):
+	if len(c) > len(d):
+		return True
+	elif len(c) < len(d):
+		return False
+	else:
+		return to_string(c) <= to_string(d)
 
-	# Removes a neuron from the support of codeword
-	def remove(self, neuron):
-		assert neuron in PP
-		return CodeWord(self._support.difference(Set([neuron])))
-
-	# Returns the support of the codeword as a set
-	def support(self):
-		return self._support
-
-	# Returns true if self contains other, and false otherwise
-	def contains(self, other):
-		return other.support().issubset(self.support())
-
-	# Returns the length of the codeword
-	def __len__(self):
-		return len(self._support)
-
-	# Less than or equal, used for lexicographical ordering of codewords
-	def __le__(self, other):
-		if len(self) > len(other):
-			return True
-		elif len(self) < len(other):
-			return False
-		else:
-			return self.to_string() <= other.to_string()
-
-	# Less than, used for lexicographical ordering of codewords
-	def __lt__(self, other):
-		if len(self) > len(other):
-			return True
-		elif len(self) < len(other):
-			return False
-		else:
-			return self.to_string() < other.to_string()
-
-	# Checks if two codewords are equal
-	def __eq__(self, other):
-		return self.__dict__ == other.__dict__
-
-	# Greater than or equal, used for lexicographical ordering of codewords
-	def __ge__(self, other):
-		return not(self.__lt__(other))
-
-	# Greater than, used for lexicographical ordering of codewords
-	def __gt__(self, other):
-		return not(self.__le__(other))
-
-	# Checks if two codewords are not equal
-	def __ne__(self, other):
-		return not(self.__eq__(other))
-
-	def __hash__(self):
-		return hash(repr(self))
+# Less than, used for lexicographical ordering of codewords
+def ltcodewords(c, d):
+	if len(c) > len(d):
+		return True
+	elif len(c) < len(d):
+		return False
+	else:
+		return to_string(c) < to_string(d)
 
 # A class for neural codes
 class Code(SageObject):
 	# Constructor for Code object. Parameter 'codewords' must be a list or set
 	# in which each element is a 
-	#  - CodeWord object, or 
 	#  - string of integers separated by spaces, or
 	#  - a set of integers, or
 	#  - a list of integers
@@ -127,19 +74,15 @@ class Code(SageObject):
 		if set.is_Set(codewords):
 			codewords = codewords.list()
 		for c in codewords:
-			if isinstance(c, CodeWord):
-				n = n + list(c.support())
-				C.append(c)
-			else:
-				c = CodeWord(c)
-				n = n + list(c.support())
-				C.append(c)
+			c = CodeWord(c)
+			n = n + list(c)
+			C.append(c)
 
 		self._codewords = Set(C)
 		# Partial order whose elements are codewords ordered by inclusion
 		self._poset = 'uncomputed'
 		# A set of neurons, namely those that are nontrivial in the code
-		self._support = support
+		self._support = Set(n)
 		# A dictionary indexed by sets of neurons which contains trunks 
 		self._trunks = 'uncomputed'
 		# Set of sets of indices indexing the irreducible trunks
@@ -158,7 +101,7 @@ class Code(SageObject):
 			return "{}"
 		r = "{"
 		for c in sorted(self._codewords.list()):
-			r = r + c.to_string() + ", "
+			r = r + to_string(c) + ", "
 		return r[:-2] + "}"
 
 	# Returns the code as a partially ordered set
@@ -175,7 +118,7 @@ class Code(SageObject):
 	def is_intersection_complete(self):
 		for c in self._codewords:
 			for d in self._codewords:
-				if not CodeWord(c.support().intersection(d.support())) in self._codewords:
+				if not CodeWord(c.intersection(d)) in self._codewords:
 					return False
 		return True
 
@@ -194,11 +137,11 @@ class Code(SageObject):
 			S = list(S)
 			c = []
 			if len(S) >= 1:
-				c = S[0].support()
+				c = S[0]
 				for d in S:
-					c = c.intersection(d.support())
-				if not CodeWord(c) in self._codewords:
-					missing = missing + [CodeWord(c)]
+					c = c.intersection(d)
+				if not c in self._codewords:
+					missing = missing + [c]
 		return Set(missing)
 
 	# Returns the set of maximal codewords
@@ -209,7 +152,7 @@ class Code(SageObject):
 	def simplicial_complex_code(self):
 		C = []
 		for m in self.maximal_codewords():
-			C = C + [CodeWord(c) for c in m.support().subsets()]
+			C = C + [c for c in m.support().subsets()]
 		return Code(C)
 
 	# Returns true if code has local obstructions, false otherwise. Note that
@@ -238,7 +181,7 @@ class Code(SageObject):
 
 	# Returns the simplicial complex associated to a code
 	def simplicial_complex(self):
-		return SimplicialComplex([list(x.support()) for x in self.maximal_codewords()])
+		return SimplicialComplex([list(x) for x in self.maximal_codewords()])
 
 	# Returns true if simplicial complex of the code has trivial homology.
 	# Provides a coarse test for whether simplicial complex is contractible.
@@ -260,7 +203,7 @@ class Code(SageObject):
 			im = []
 			for j in range(0, m):
 				if T[j] != "Empty":
-					if T[j].issubset(c.support()):
+					if T[j].issubset(c):
 						im = im + [j+1]
 			D[c] = CodeWord(im)
 		return D
@@ -286,13 +229,11 @@ class Code(SageObject):
 		trunk = self.trunk(s)
 		words = []
 		for c in trunk:
-			words = words + [CodeWord(c.support().difference(s))]
+			words = words + [CodeWord(c.difference(s))]
 		return Code(words)
 
 	# Returns the set of trunks in the code
 	def support(self):
-		if self._support == 'uncomputed':
-			self._compute_support()
 		return self._support
 
 	# Returns the set of trunks in the code
@@ -320,8 +261,9 @@ class Code(SageObject):
 		if len(self._codewords) == 0:
 			return "{}"
 		r = "{"
-		for c in sorted(self._codewords.list()):
-			r = r + c.to_string_compact() + ", "
+		#TODO make this sort properly
+		for c in sorted(self._codewords.list(), key=lecodewords):
+			r = r + to_string_compact(c) + ", "
 		return r[:-2] + "}"
 
 	# Returns the trunk of a set of neurons
@@ -363,7 +305,7 @@ class Code(SageObject):
 		for p in list(itertools.permutations(list(C.support()))):
 			equal = True
 			for c in CC:
-				cc = CodeWord([p[i-1] for i in c.support()])
+				cc = CodeWord([p[i-1] for i in c])
 				if not cc in DD:
 					equal = False
 					break
@@ -405,9 +347,9 @@ class Code(SageObject):
 		for S in self.maximal_codewords().subsets():
 			S = list(S)
 			if len(S) >= 1:
-				c = S[0].support()
+				c = S[0]
 				for d in S:
-					c = c.intersection(d.support())
+					c = c.intersection(d)
 				M = M + [c]
 		for m in Set(M):
 			L = self.link(m)
@@ -420,23 +362,17 @@ class Code(SageObject):
 
 	# Computes the partially ordered set containing all codewords
 	def _compute_poset(self):
-		fcn = lambda c,d : d.contains(c)
+		fcn = lambda c,d : c.issubset(d)
 		self._poset = Poset([self._codewords, fcn])
-
-	# Computes the support of the code 
-	def _compute_support(self):
-		S = Set()
-		for m in self.maximal_codewords():
-			S = S.union(m.support())
-		self._support = Set(S)
 
 	# Updates the set of trunks 
 	def _compute_trunks(self):
 		TT = {}
 		for s in self.support().subsets():
+			#TODO rewrite this using T as a list
 			T = Set()
 			for c in self._codewords:
-				if s.issubset(c.support()):
+				if s.issubset(c):
 					T = T.union(Set([c]))
 			TT[s] = T
 		self._trunks = TT
@@ -452,7 +388,7 @@ class Code(SageObject):
 			T = TT[Set([i])]
 			s = S
 			for c in T:
-				s = s.intersection(c.support())
+				s = s.intersection(c)
 			add = True
 			smi = s.difference(Set([i]))
 			for ss in smi.subsets():
@@ -529,7 +465,7 @@ def compute_all_images_up_to_isomorphism(C):
 			if D.is_isomorphic_to(I):
 				add = False
 		if add:
-			images = images + [I]
+			images =  [I] + images 
 			print(len(images))
 			print(float(i/tot))
 
