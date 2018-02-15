@@ -299,6 +299,14 @@ class TestCode(unittest.TestCase):
 		#TODO
 		return False
 
+	def test_connected(self):
+		#TODO
+		return False
+
+	def test_has_redundancies(self):
+		#TODO
+		return False
+
 
 
 # Run the tests

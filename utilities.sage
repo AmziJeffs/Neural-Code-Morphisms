@@ -152,7 +152,7 @@ class Code(SageObject):
 	def simplicial_complex_code(self):
 		C = []
 		for m in self.maximal_codewords():
-			C = C + [c for c in m.support().subsets()]
+			C = C + [c for c in m.subsets()]
 		return Code(C)
 
 	# Returns true if code has local obstructions, false otherwise. Note that
@@ -332,6 +332,20 @@ class Code(SageObject):
 						return 0
 		return -1
 
+	# Returns True if the simplicial complex of the code is connected, and
+	# returns False otherwise.
+	def connected(self):
+		return self.simplicial_complex().is_connected()
+
+	# Returns True if the code has redundant neurons
+	def has_redundancies(self):
+		TT = self.trunks()
+		for i in self.support():
+			for s in self.support().difference(Set([i])).subsets():
+				if TT[Set([i])] == TT[s]:
+					return True
+		return False
+
 	# 
 	# Below this line are internal utility methods that shouldn't be accessed 
 	# by outside functions.
@@ -383,6 +397,7 @@ class Code(SageObject):
 		S = self.support()
 		irred_trunks = []
 		irred_indices = []
+
 		# Suffices to compute the simple trunks that are irreducible
 		for i in self.support():
 			T = TT[Set([i])]
@@ -436,11 +451,35 @@ class Code(SageObject):
 
 
 
+# Computes all codes on n bits, up to isomorphism
+def compute_all_connected_codes_up_to_isomorphism(n):
+	start = time.time()
+	fullcode = Set([x for x in Set(range(1,n+1)).subsets()])
 
+	codes = []
+	i = 0
+	for C in fullcode.subsets():
+		i = i + 1
+		C = Code(C)
+		add = True
+		if C.connected():
+			for D in codes:
+				if D.is_isomorphic_to(C):
+					add = False
+					break
+		else:
+			add = False
+
+		if add:
+			print(float(i)/pow(2,pow(2,n)))
+			codes = codes + [C]
+
+	print("Computed all codes in: " + str(time.time()-start) + " seconds")
+	return codes
 
 # A function that computes all the images of a code up to isomorphism, 
 # returning them all in a set
-def compute_all_images_up_to_isomorphism(C):
+def compute_all_connected_images_up_to_isomorphism(C):
 	start = time.time()
 	images = []
 
@@ -461,9 +500,12 @@ def compute_all_images_up_to_isomorphism(C):
 		i = i+1
 		I = C.image_under_morphism(list(B))
 		add = True
-		for D in images:
-			if D.is_isomorphic_to(I):
-				add = False
+		if I.connected():
+			for D in images:
+				if D.is_isomorphic_to(I):
+					add = False
+		else: 
+			add = False
 		if add:
 			images =  [I] + images 
 			print(len(images))
@@ -471,3 +513,44 @@ def compute_all_images_up_to_isomorphism(C):
 
 	print("Computed images in: " + str(time.time()-start) + " seconds")
 	return Set([x.reduced() for x in images])
+	
+
+# A function that computes all the images of a code up to isomorphism, 
+# returning them all in a set
+def compute_all_connected_images_up_to_isomorphism_2(C):
+	start = time.time()
+	images = []
+
+	# First compute the distinct nonempty proper trunks
+	TT = C.trunks()
+	distinct = []
+	for T in TT:
+		add = True
+		for x in distinct:
+			if TT[T] == TT[x] or TT[T] == C.codewords() or TT[T] == Set():
+				add = False
+		if add:
+			distinct = distinct + [T]
+
+	tot = pow(2, len(distinct))
+	i=0
+	for BB in Set(distinct).subsets():
+		i = i+1
+
+		I = C.image_under_morphism(list(BB))
+		add = True
+
+		# Only have to check the connected images without redundant neurons
+		if I.connected() and not I.has_redundancies():
+			for D in images:
+				if D.is_isomorphic_to(I):
+					add = False
+		else: 
+			add = False
+		if add:
+			images =  [I] + images 
+			print(len(images))
+			print(float(i/tot))
+
+	print("Computed images in: " + str(time.time()-start) + " seconds")
+	return Set(images)
