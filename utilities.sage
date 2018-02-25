@@ -4,6 +4,7 @@
 from sage.sets import *
 import itertools
 import time
+import sys
 PP = PositiveIntegers()
 
 
@@ -34,7 +35,7 @@ def to_string(c):
 	return r[:-1]
 
 	# Returns a string displaying the codeword without whitespace
-def to_string_compact(self):
+def to_string_compact(c):
 	if len(c) == 0:
 		return "Empty"
 	r = ""
@@ -42,23 +43,14 @@ def to_string_compact(self):
 		r = r + str(i)
 	return r
 
-# Less than or equal, used for lexicographical ordering of codewords
-def lecodewords(c, d):
+# Codeword comparator, used for pseudolexicographical ordering of codewords
+def cmpcodewords(c, d):
 	if len(c) > len(d):
-		return True
+		return int(-1)
 	elif len(c) < len(d):
-		return False
+		return int(1)
 	else:
-		return to_string(c) <= to_string(d)
-
-# Less than, used for lexicographical ordering of codewords
-def ltcodewords(c, d):
-	if len(c) > len(d):
-		return True
-	elif len(c) < len(d):
-		return False
-	else:
-		return to_string(c) < to_string(d)
+		return to_string(c) >= to_string(d)
 
 # A class for neural codes
 class Code(SageObject):
@@ -85,7 +77,7 @@ class Code(SageObject):
 		self._support = Set(n)
 		# A dictionary indexed by sets of neurons which contains trunks 
 		self._trunks = 'uncomputed'
-		# Set of sets of indices indexing the irreducible trunks
+		# List of indices indexing the irreducible trunks
 		self._irreducible_trunks = 'uncomputed' 
 		# Set of mandatory codewords
 		self._mandatory_codewords = 'uncomputed' 
@@ -95,14 +87,16 @@ class Code(SageObject):
 		self._reduced = 'uncomputed'
 		# Tracks whether the code itself is equal to its reduced code
 		self._is_reduced = is_reduced
+		self._connected = 'uncomputed'
 
 	def __repr__(self):
-		if len(self._codewords) == 0:
-			return "{}"
-		r = "{"
-		for c in sorted(self._codewords.list()):
-			r = r + to_string(c) + ", "
-		return r[:-2] + "}"
+		return self.compact()
+		#if len(self._codewords) == 0:
+		#	return "{}"
+		#r = "{"
+		#for c in sorted(self._codewords.list()):
+		#	r = r + to_string(c) + ", "
+		#return r[:-2] + "}"
 
 	# Returns the code as a partially ordered set
 	def poset(self):
@@ -258,11 +252,10 @@ class Code(SageObject):
 
 	# Returns a string displaying the code with no whitespace between neurons.
 	def compact(self):
-		if len(self._codewords) == 0:
+		if len(self.codewords()) == 0:
 			return "{}"
 		r = "{"
-		#TODO make this sort properly
-		for c in sorted(self._codewords.list(), key=lecodewords):
+		for c in sorted(list(self.codewords()), cmp=cmpcodewords):
 			r = r + to_string_compact(c) + ", "
 		return r[:-2] + "}"
 
@@ -290,18 +283,26 @@ class Code(SageObject):
 			return False
 		if self == other:
 			return True
+		if self.connected() != other.connected():
+			return False
 
 		# Next compute the reduced associated codes
 		C = self.reduced()
 		D = other.reduced()
 
+		# One more easy check
+		if C.support() != D.support():
+			return False
+
 		# Test all permuted versions of C. If any are the same as D, 
 		# then we return true. Else, false. Since we already know C
-		# and D have the same since, we just have to check that every
+		# and D have the same support, we just have to check that every
 		# permuted codeword from C lies in D (i.e. that the permutation)
 		# gives us an injective map C->D.
-		CC = C.codewords()
+
 		DD = D.codewords()
+		CC = C.codewords()
+		
 		for p in list(itertools.permutations(list(C.support()))):
 			equal = True
 			for c in CC:
@@ -311,6 +312,7 @@ class Code(SageObject):
 					break
 			if equal:
 				return True
+
 		return False
 
 	# Returns the number of codewords in the code
@@ -335,15 +337,20 @@ class Code(SageObject):
 	# Returns True if the simplicial complex of the code is connected, and
 	# returns False otherwise.
 	def connected(self):
-		return self.simplicial_complex().is_connected()
+		if self._connected == 'uncomputed':
+			self._connected = self.simplicial_complex().is_connected()
+		return self._connected
 
 	# Returns True if the code has redundant neurons
 	def has_redundancies(self):
+		if self._is_reduced:
+			return False
 		TT = self.trunks()
 		for i in self.support():
 			for s in self.support().difference(Set([i])).subsets():
 				if TT[Set([i])] == TT[s]:
 					return True
+		self._is_reduced = True
 		return False
 
 	# 
@@ -414,12 +421,12 @@ class Code(SageObject):
 			if add and not T in irred_trunks:
 				irred_trunks = irred_trunks + [T]
 				irred_indices = irred_indices + [i]
-		return Set([Set([i]) for i in irred_indices])
+		self._irreducible_trunks = irred_indices
 
 	# Computes the codewords in the isomorphism representative for this code
 	# which has no trivial or redundant neurons
 	def _compute_reduced_codewords(self):
-		self._reduced = self.image_under_morphism([s for s in self._compute_irreducible_trunks()])
+		self._reduced = self.image_under_morphism([Set([i]) for i in self.irreducible_trunks()])
 		self._reduced._is_reduced = True
 
 	# Checks if two codes are equal
@@ -451,18 +458,32 @@ class Code(SageObject):
 
 
 
-# Computes all codes on n bits, up to isomorphism
-def compute_all_connected_codes_up_to_isomorphism(n):
+# Computes all codes on up to n bits, up to isomorphism
+def compute_all_connected_codes_up_to_isomorphism(n, verbose = True):
 	start = time.time()
-	fullcode = Set([x for x in Set(range(1,n+1)).subsets()])
+	if verbose:
+		print("Computing all connected codes on up to "+str(n)+" bits")
 
+	fullcode = Set([x for x in Set(range(1,n+1)).subsets()])
 	codes = []
+
 	i = 0
+	tot = pow(2,pow(2,n))
+	if verbose:
+		sys.stdout.write("0 percent complete.")
+		sys.stdout.flush()
+
+	percent = int(tot/100)
 	for C in fullcode.subsets():
-		i = i + 1
+		if(verbose):
+			i = i + 1
+			if i%percent == 0:
+				sys.stdout.write('\r'+str(int(100*i/tot)) + " percent complete.")
+				sys.stdout.flush()
+
 		C = Code(C)
 		add = True
-		if C.connected():
+		if not C.has_redundancies() and C.connected():
 			for D in codes:
 				if D.is_isomorphic_to(C):
 					add = False
@@ -471,16 +492,20 @@ def compute_all_connected_codes_up_to_isomorphism(n):
 			add = False
 
 		if add:
-			print(float(i)/pow(2,pow(2,n)))
 			codes = codes + [C]
 
-	print("Computed all codes in: " + str(time.time()-start) + " seconds")
+	if verbose:
+		print("\nComputed all codes in: " + str(time.time()-start) + " seconds")
+
 	return codes
 
 # A function that computes all the images of a code up to isomorphism, 
-# returning them all in a set
-def compute_all_connected_images_up_to_isomorphism(C):
+# returning them all in a set.
+def compute_all_images_up_to_isomorphism(C, verbose = True):
 	start = time.time()
+	if verbose:
+		print("Computing all images of the code: " + C.compact())
+
 	images = []
 
 	# First compute the distinct nonempty proper trunks
@@ -488,37 +513,53 @@ def compute_all_connected_images_up_to_isomorphism(C):
 	distinct = []
 	for T in TT:
 		add = True
-		for x in distinct:
-			if TT[T] == TT[x] or TT[T] == C.codewords() or TT[T] == Set():
-				add = False
+		if TT[T] == C.codewords() or TT[T] == Set():
+			add = False
+		else:
+			for x in distinct:
+				if TT[T] == TT[x]:
+					add = False
 		if add:
 			distinct = distinct + [T]
 
+	# Then compute all the images under morphisms defined by subsets
+	# of these trunks
 	tot = pow(2, len(distinct))
-	i=0
-	for B in Set(distinct).subsets():
-		i = i+1
-		I = C.image_under_morphism(list(B))
+	percent = max(1, int(tot/100))
+	i = 0
+	for BB in Set(distinct).subsets():
+		if verbose:
+			i = i + 1
+			if i%percent == 0:
+				sys.stdout.write('\r'+str(int(100*i/tot)) + " percent complete.")
+				sys.stdout.flush()
+
+		I = C.image_under_morphism(list(BB))
 		add = True
-		if I.connected():
+
+		# Only have to check the images without redundant neurons
+		if I.has_redundancies():
+			add = False
+		else:
 			for D in images:
 				if D.is_isomorphic_to(I):
 					add = False
-		else: 
-			add = False
+					break
+
 		if add:
 			images =  [I] + images 
-			print(len(images))
-			print(float(i/tot))
 
 	print("Computed images in: " + str(time.time()-start) + " seconds")
-	return Set([x.reduced() for x in images])
-	
+	return Set(images)
+
 
 # A function that computes all the images of a code up to isomorphism, 
-# returning them all in a set
-def compute_all_connected_images_up_to_isomorphism_2(C):
+# returning them all in a set.
+def compute_all_connected_images_up_to_isomorphism(C, verbose = True):
 	start = time.time()
+	if verbose:
+		print("Computing all connected images of the code: " + C.compact())
+
 	images = []
 
 	# First compute the distinct nonempty proper trunks
@@ -526,31 +567,38 @@ def compute_all_connected_images_up_to_isomorphism_2(C):
 	distinct = []
 	for T in TT:
 		add = True
-		for x in distinct:
-			if TT[T] == TT[x] or TT[T] == C.codewords() or TT[T] == Set():
-				add = False
+		if TT[T] == C.codewords() or TT[T] == Set():
+			add = False
+		else:
+			for x in distinct:
+				if TT[T] == TT[x]:
+					add = False
 		if add:
 			distinct = distinct + [T]
 
 	tot = pow(2, len(distinct))
-	i=0
+	percent = max(1, int(tot/100))
+	i = 0
 	for BB in Set(distinct).subsets():
-		i = i+1
+		if verbose:
+			i = i + 1
+			if i%percent == 0:
+				sys.stdout.write('\r'+str(int(100*i/tot)) + " percent complete.")
+				sys.stdout.flush()
 
 		I = C.image_under_morphism(list(BB))
 		add = True
 
 		# Only have to check the connected images without redundant neurons
-		if I.connected() and not I.has_redundancies():
+		if not I.has_redundancies() and I.connected():
 			for D in images:
 				if D.is_isomorphic_to(I):
 					add = False
+					break
 		else: 
 			add = False
 		if add:
 			images =  [I] + images 
-			print(len(images))
-			print(float(i/tot))
 
 	print("Computed images in: " + str(time.time()-start) + " seconds")
 	return Set(images)

@@ -307,6 +307,10 @@ class TestCode(unittest.TestCase):
 		#TODO
 		return False
 
+	def test_trivial_neurons(self):
+		#TODO
+		return False
+
 
 
 # Run the tests
