@@ -7,21 +7,6 @@ load("utilities.sage")
 import time
 import sys
 
-# A function that takes two lists (or sets) of codes L and M and returns
-# a list containing the codes in M which are not (up to isomorphism)
-# present in L.
-def subtract(L, M):
-	result = []
-	for C in M:
-		add = True
-		for D in L:
-			if C.is_isomorphic_to(D):
-				add = False
-				break
-		if add:
-			result = result + [C]
-	return result
-
 # A nonconvex code with no local obstructions. See Theorem 3.1 in LSW paper.
 C = Code(["2 3 4 5", "1 2 3", "1 3 4", "1 4 5", "1 3", "1 4", "2 3", "3 4", "4 5", "3", "4", ""])
 

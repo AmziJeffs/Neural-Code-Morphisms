@@ -602,3 +602,18 @@ def compute_all_connected_images_up_to_isomorphism(C, verbose = True):
 
 	print("Computed images in: " + str(time.time()-start) + " seconds")
 	return Set(images)
+
+# A function that takes two lists (or sets) of codes L and M and returns
+# a list containing the codes in M which are not (up to isomorphism)
+# present in L.
+def subtract(L, M):
+	result = []
+	for C in M:
+		add = True
+		for D in L:
+			if C.is_isomorphic_to(D):
+				add = False
+				break
+		if add:
+			result = result + [C]
+	return result
