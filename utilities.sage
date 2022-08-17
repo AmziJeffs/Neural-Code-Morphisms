@@ -18,7 +18,7 @@ def compute_all_connected_codes_up_to_isomorphism(n, verbose = True):
 		sys.stdout.write("0 percent complete.")
 		sys.stdout.flush()
 
-	percent = int(tot/100)
+	percent = 5*max(1,int(tot/100))
 	for C in fullcode.subsets():
 		if(verbose):
 			i = i + 1
@@ -70,7 +70,7 @@ def compute_all_images_up_to_isomorphism(C, verbose = True):
 	# Then compute all the images under morphisms defined by subsets
 	# of these trunks
 	tot = pow(2, len(distinct))
-	percent = max(1, int(tot/100))
+	percent = 5*max(1, int(tot/100))
 	i = 0
 	for BB in Set(distinct).subsets():
 		if verbose:
@@ -122,7 +122,7 @@ def compute_all_connected_images_up_to_isomorphism(C, verbose = True):
 			distinct = distinct + [T]
 
 	tot = pow(2, len(distinct))
-	percent = max(1, int(tot/100))
+	percent = 5*max(1, int(tot/100))
 	i = 0
 	for BB in Set(distinct).subsets():
 		if verbose:
