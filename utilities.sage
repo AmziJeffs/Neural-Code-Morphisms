@@ -44,7 +44,7 @@ def compute_all_connected_codes_up_to_isomorphism(n, verbose = True):
 
 	return codes
 
-# A function that computes all the images of a code up to isomorphism, 
+# A function that computes all the images of a code up to isomorphism,
 # returning them all in a set.
 def compute_all_images_up_to_isomorphism(C, verbose = True):
 	start = time.time()

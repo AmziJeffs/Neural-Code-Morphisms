@@ -13,13 +13,33 @@ PP = PositiveIntegers()
 #  - a list of integers, or
 #  - a set of integers
 def CodeWord(support = Set()):
-	if isinstance(support, basestring):
+	if isinstance(support, str):
 		S = []
 		for x in support.split(" "):
 			if x != "":
 				S = S + [int(float(x))]
 		support = Set(S)
 	return Set(support)
+
+# To update cmp functions for sorting, compatible with Python 3
+def cmp_to_key(mycmp):
+    'Convert a cmp= function into a key= function'
+    class K:
+        def __init__(self, obj, *args):
+            self.obj = obj
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+    return K
 
 	# Returns a string displaying the codeword
 def to_string(c):
@@ -51,15 +71,15 @@ def cmpcodewords(c, d):
 # A class for neural codes
 class Code(SageObject):
 	# Constructor for Code object. Parameter 'codewords' must be a list or set
-	# in which each element is a 
+	# in which each element is a
 	#  - string of integers separated by spaces, or
 	#  - a set of integers, or
 	#  - a list of integers
 	def __init__(self, codewords=Set(), support='uncomputed', is_reduced=False):
-		assert set.is_Set(codewords) or isinstance(codewords, list)
+		assert isinstance(codewords, set.Set_generic) or isinstance(codewords, list)
 		C = []
 		n = []
-		if set.is_Set(codewords):
+		if isinstance(codewords, set.Set_generic):
 			codewords = codewords.list()
 		for c in codewords:
 			c = CodeWord(c)
@@ -251,7 +271,7 @@ class Code(SageObject):
 		if len(self.codewords()) == 0:
 			return "{}"
 		r = "{"
-		for c in sorted(list(self.codewords()), cmp=cmpcodewords):
+		for c in sorted(list(self.codewords()), key=cmp_to_key(cmpcodewords)):
 			r = r + to_string_compact(c) + ", "
 		return r[:-2] + "}"
 
