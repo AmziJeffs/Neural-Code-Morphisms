@@ -1,0 +1,32 @@
+Output of running LSW_example.sage
+
+Computing all images of the code: {2345, 145, 123, 134, 34, 14, 23, 45, 13, 3, 4, Empty}
+97 percent complete.Computed images in: 43.6030957698822 seconds
+Computing all images of the code: {2345, 234, 145, 345, 123, 134, 34, 14, 23, 45, 13, 3, 4, Empty}
+99 percent complete.Computed images in: 539.4222619533539 seconds
+Computing all images of the code: {2345, 145, 123, 134, 34, 14, 23, 45, 13, 3, 1, 4, Empty}
+97 percent complete.Computed images in: 41.778892040252686 seconds
+Computing images of C that are not images of D.
+Done.
+Computing images of C that are not images of E.
+Done.
+Computing images of D that are not images of C.
+Done.
+Computing images of E that are not images of C.
+Done.
+Computing images of D that are not images of E.
+Done.
+Computing images of E that are not images of D.
+Done.
+
+FINAL COUNTS:
+There are 178 images of C.
+There are 721 images of D.
+There are 133 images of E.
+There are 11 images of C that are not images of D.
+There are 554 images of D that are not images of C.
+There are 57 images of C that are not images of E.
+There are 12 images of E that are not images of C.
+There are 607 images of D that are not images of E.
+There are 19 images of E that are not images of D.
+Computed results in: 680.6456258296967 seconds
